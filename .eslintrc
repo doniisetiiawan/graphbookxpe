@@ -8,6 +8,7 @@
     "node": true
   },
   "rules": {
-    "no-shadow": "off"
+    "no-shadow": "off",
+    "no-console": "off"
   }
 }
