@@ -24,3 +24,5 @@ chrome-user-data
 *.swo
 yarn\.lock
 dist/
+
+stats\.json
