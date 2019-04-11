@@ -10,18 +10,20 @@ const root = path.join(__dirname, '../../');
 const app = express();
 const port = 8000;
 
-app.use(helmet());
-app.use(helmet.contentSecurityPolicy({
-  directives: {
-    defaultSrc: ["'self'"],
-    scriptSrc: ["'self'", "'unsafe-inline'"],
-    styleSrc: ["'self'", "'unsafe-inline'"],
-    imgSrc: ["'self'", 'data:', '*.amazonaws.com'],
-  },
-}));
-app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
-app.use(compression());
-app.use(cors());
+if (process.env.NODE_ENV === 'production') {
+  app.use(helmet());
+  app.use(helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', '*.amazonaws.com'],
+    },
+  }));
+  app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
+  app.use(compression());
+  app.use(cors());
+}
 
 app.use('/', express.static(path.join(root, 'dist/client')));
 app.use('/uploads', express.static(path.join(root, 'uploads')));
