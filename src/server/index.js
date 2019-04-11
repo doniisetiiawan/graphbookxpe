@@ -3,6 +3,7 @@ import path from 'path';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
+import services from './services';
 
 const root = path.join(__dirname, '../../');
 
@@ -24,6 +25,16 @@ app.use(cors());
 
 app.use('/', express.static(path.join(root, 'dist/client')));
 app.use('/uploads', express.static(path.join(root, 'uploads')));
+
+const serviceNames = Object.keys(services);
+for (let i = 0; i < serviceNames.length; i += 1) {
+  const name = serviceNames[i];
+  if (name === 'graphql') {
+    services[name].applyMiddleware({ app });
+  } else {
+    app.use(`/${name}`, services[name]);
+  }
+}
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(root, 'dist/client/index.html'));
