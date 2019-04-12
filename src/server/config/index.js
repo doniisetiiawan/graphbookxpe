@@ -5,7 +5,7 @@ module.exports = {
     database: 'graphbookxpe',
     host: 'localhost',
     dialect: 'mysql',
-    operatorsAliases: false,
+    // operatorsAliases: false,
     pool: {
       max: 5,
       min: 0,
@@ -20,7 +20,7 @@ module.exports = {
     database: process.env.database,
     logging: false,
     dialect: 'mysql',
-    operatorsAliases: false,
+    // operatorsAliases: false,
     pool: {
       max: 5,
       min: 0,

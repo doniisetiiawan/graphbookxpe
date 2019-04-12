@@ -1,7 +1,9 @@
 import Sequelize from 'sequelize';
 import registerRequireContextHook from 'babel-plugin-require-context-hook/register';
 
-if (process.env.NODE_ENV === 'development') {
+const env = process.env.NODE_ENV || 'development';
+
+if (env === 'development') {
   registerRequireContextHook();
 }
 
