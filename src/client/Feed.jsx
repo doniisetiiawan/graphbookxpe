@@ -42,7 +42,10 @@ export default class Feed extends Component {
       <div className="container">
         <div className="postForm">
 
-          <Mutation mutation={ADD_POST}>
+          <Mutation
+            mutation={ADD_POST}
+            refetchQueries={[{ query: GET_POSTS }]}
+          >
             {addPost => (
               <form onSubmit={(e) => {
                 e.preventDefault();
