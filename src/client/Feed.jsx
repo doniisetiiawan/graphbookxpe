@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import gql from 'graphql-tag';
-import { Query } from 'react-apollo';
+import { Query, Mutation } from 'react-apollo';
 
 const GET_POSTS = gql`{
   posts {
@@ -13,6 +13,18 @@ const GET_POSTS = gql`{
   }
 }`;
 
+const ADD_POST = gql`
+  mutation addPost($post : PostInput!) {
+    addPost(post : $post) {
+      id
+      text
+      user {
+        username
+        avatar
+      }
+    }
+  }`;
+
 export default class Feed extends Component {
   state = {
     postContent: '',
@@ -22,23 +34,37 @@ export default class Feed extends Component {
     this.setState({ postContent: event.target.value });
   };
 
-  handleSubmit = (event) => {
-    event.preventDefault();
-  };
-
   render() {
+    const self = this;
     const { postContent } = this.state;
+
     return (
       <div className="container">
         <div className="postForm">
-          <form onSubmit={this.handleSubmit}>
-            <textarea
-              value={postContent}
-              onChange={this.handlePostContentChange}
-              placeholder="Write your custom post!"
-            />
-            <input type="submit" value="Submit" />
-          </form>
+
+          <Mutation mutation={ADD_POST}>
+            {addPost => (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                addPost({
+                  variables: { post: { text: postContent } },
+                }).then(() => {
+                  self.setState(() => ({
+                    postContent: '',
+                  }));
+                });
+              }}
+              >
+                <textarea
+                  value={postContent}
+                  onChange={self.handlePostContentChange}
+                  placeholder="Write your custom post!"
+                />
+                <input type="submit" value="Submit" />
+              </form>
+            )}
+          </Mutation>
+
         </div>
         <div className="feed">
           <Query
