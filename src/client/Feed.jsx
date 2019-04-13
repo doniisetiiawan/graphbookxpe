@@ -1,6 +1,7 @@
+/* eslint-disable react/prop-types */
 import React, { Component } from 'react';
 import gql from 'graphql-tag';
-import { graphql } from 'react-apollo';
+import { graphql, compose } from 'react-apollo';
 
 const GET_POSTS = gql`{
   posts {
@@ -13,6 +14,19 @@ const GET_POSTS = gql`{
   }
 }`;
 
+const ADD_POST = gql`
+  mutation addPost($post: PostInput!) {
+    addPost(post: $post) {
+      id
+      text
+      user {
+        avatar
+        username
+      }
+    }
+  }
+`;
+
 class Feed extends Component {
   state = {
     postContent: '',
@@ -23,7 +37,19 @@ class Feed extends Component {
   };
 
   handleSubmit = (event) => {
+    const self = this;
+    const { postContent } = this.state;
+    const { addPost } = this.props;
     event.preventDefault();
+
+    const newPost = {
+      text: postContent,
+    };
+    addPost({ variables: { post: newPost } }).then(() => {
+      self.setState(() => ({
+        postContent: '',
+      }));
+    });
   };
 
   render() {
@@ -47,8 +73,7 @@ class Feed extends Component {
           </form>
         </div>
         <div className="feed">
-          {/* eslint-disable-next-line no-unused-vars */}
-          {posts.map((post, i) => (
+          {posts.map(post => (
             <div key={post.id} className="post">
               <div className="header">
                 <img src={post.user.avatar} alt="avatar" />
@@ -65,10 +90,16 @@ class Feed extends Component {
   }
 }
 
-export default graphql(GET_POSTS, {
+const ADD_POST_MUTATION = graphql(ADD_POST, {
+  name: 'addPost',
+});
+
+const GET_POSTS_QUERY = graphql(GET_POSTS, {
   props: ({ data: { loading, error, posts } }) => ({
     loading,
     posts,
     error,
   }),
-})(Feed);
+});
+
+export default compose(GET_POSTS_QUERY, ADD_POST_MUTATION)(Feed);
