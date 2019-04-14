@@ -1,6 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet';
 import Feed from './Feed';
+import Chats from './Chats'
 
 import '../../assets/css/style.css';
 
@@ -15,6 +16,7 @@ export default function App() {
         />
       </Helmet>
       <Feed />
+      <Chats />
     </div>
   );
 }
