@@ -3,7 +3,7 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import React, { Component } from 'react';
 import gql from 'graphql-tag';
-import { Query } from 'react-apollo';
+import { Query, Mutation } from 'react-apollo';
 
 const GET_CHATS = gql`{
   chats {
@@ -39,6 +39,18 @@ const GET_CHAT = gql`
   }
 `;
 
+const ADD_MESSAGE = gql`  
+  mutation addMessage($message: MessageInput!) {
+    addMessage(message: $message) {
+      id
+      text
+      user {
+        id
+      }
+    }
+  }
+`;
+
 export default class Chats extends Component {
   static usernamesToString(users) {
     const userList = users.slice(1);
@@ -62,6 +74,7 @@ export default class Chats extends Component {
 
   state = {
     openChats: [],
+    textInputs: {},
   };
 
   openChat = (id) => {
@@ -78,19 +91,36 @@ export default class Chats extends Component {
     this.setState({ openChats });
   };
 
-  closeChat = (id) => {
+  onChangeChatInput = (event, id) => {
+    event.preventDefault();
     // eslint-disable-next-line react/destructuring-assignment
-    const openChats = this.state.openChats.slice();
+    const textInputs = Object.assign({}, this.state.textInputs);
+    textInputs[id] = event.target.value;
+    this.setState({ textInputs });
+  };
 
-    const index = openChats.indexOf(id);
-    openChats.splice(index, 1);
+  handleKeyPress = (event, id, addMessage) => {
+    const self = this;
+    const textInputs = Object.assign(
+      // eslint-disable-next-line react/destructuring-assignment
+      {}, this.state.textInputs,
+    );
 
-    this.setState({ openChats });
+    if (event.key === 'Enter' && textInputs[id].length) {
+      addMessage({
+        variables: {
+          message: { text: textInputs[id], chatId: id },
+        },
+      }).then(() => {
+        textInputs[id] = '';
+        self.setState({ textInputs });
+      });
+    }
   };
 
   render() {
     const self = this;
-    const { openChats } = this.state;
+    const { openChats, textInputs } = this.state;
 
     return (
       <div className="wrapper">
@@ -123,7 +153,7 @@ export default class Chats extends Component {
                       </h2>
                       <span>
                         {chat.lastMessage
-                      && Chats.shorten(chat.lastMessage.text)}
+                        && Chats.shorten(chat.lastMessage.text)}
                       </span>
                     </div>
 
@@ -169,6 +199,44 @@ export default class Chats extends Component {
                         </div>
                       ))}
                     </div>
+                    <Mutation
+                      update={(store, { data: { addMessage } }) => {
+                        const data = store.readQuery(
+                          {
+                            query: GET_CHAT,
+                            variables:
+                              { chatId: chat.id },
+                          },
+                        );
+                        data.chat.messages.push(addMessage);
+                        store.writeQuery(
+                          {
+                            query: GET_CHAT,
+                            variables:
+                              { chatId: chat.id },
+                            data,
+                          },
+                        );
+                      }}
+                      mutation={ADD_MESSAGE}
+                    >
+                      {() => (
+                        <div className="input">
+                          <input
+                            type="text"
+                            value={textInputs[chat.id]}
+                            onChange={event => self.onChangeChatInput(
+                              event, chat.id,
+                            )}
+                            onKeyPress={(event) => {
+                              self.handleKeyPress(
+                                event, chat.id.addMessage,
+                              );
+                            }}
+                          />
+                        </div>
+                      )}
+                    </Mutation>
                   </div>
                 );
               }}
