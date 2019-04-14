@@ -1,3 +1,6 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable react/no-access-state-in-setstate */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 import React, { Component } from 'react';
 import gql from 'graphql-tag';
 import { Query } from 'react-apollo';
@@ -16,6 +19,25 @@ const GET_CHATS = gql`{
   }
 }`;
 
+const GET_CHAT = gql`
+  query chat($chatId: Int!) {
+    chat(ChatId: $chatId) {
+      id
+      users {
+        id
+        avatar
+        username
+      }
+      messages {
+        id
+        text
+        user {
+          id
+        }
+      }
+    }
+  }
+`;
 
 export default class Chats extends Component {
   static usernamesToString(users) {
@@ -38,42 +60,121 @@ export default class Chats extends Component {
     return text;
   }
 
+  state = {
+    openChats: [],
+  };
+
+  openChat = (id) => {
+    // eslint-disable-next-line react/destructuring-assignment
+    let openChats = this.state.openChats.slice();
+
+    if (openChats.indexOf(id) === -1) {
+      if (openChats.length > 2) {
+        openChats = openChats.slice(1);
+      }
+      openChats.push(id);
+    }
+
+    this.setState({ openChats });
+  };
+
+  closeChat = (id) => {
+    // eslint-disable-next-line react/destructuring-assignment
+    const openChats = this.state.openChats.slice();
+
+    const index = openChats.indexOf(id);
+    openChats.splice(index, 1);
+
+    this.setState({ openChats });
+  };
+
   render() {
+    const self = this;
+    const { openChats } = this.state;
+
     return (
-      <div className="chats">
-        <Query query={GET_CHATS}>
-          {({ loading, error, data }) => {
-            if (loading) return <p>Loading...</p>;
-            if (error) return error.message;
+      <div className="wrapper">
+        <div className="chats">
+          <Query query={GET_CHATS}>
+            {({ loading, error, data }) => {
+              if (loading) return <p>Loading...</p>;
+              if (error) return error.message;
 
-            const { chats } = data;
+              const { chats } = data;
 
-            return chats.map(chat => (
-              <div key={`chat${chat.id}`} className="chat">
-                <div className="header">
-                  <img
-                    src={(chat.users.length > 2
-                      ? '/public/group.png'
-                      : chat.users[1].avatar)}
-                    alt="avatar"
-                  />
-                  <div>
-                    <h2>
-                      {Chats.shorten(
-                        Chats.usernamesToString(chat.users),
-                      )}
-                    </h2>
-                    <span>
-                      {chat.lastMessage
-                    && Chats.shorten(chat.lastMessage.text)}
-                    </span>
+              return chats.map(chat => (
+                <div
+                  key={`chat${chat.id}`}
+                  className="chat"
+                  onClick={() => self.openChat(chat.id)}
+                >
+                  <div className="header">
+                    <img
+                      src={(chat.users.length > 2
+                        ? '/public/group.png'
+                        : chat.users[1].avatar)}
+                      alt="avatar"
+                    />
+                    <div>
+                      <h2>
+                        {Chats.shorten(
+                          Chats.usernamesToString(chat.users),
+                        )}
+                      </h2>
+                      <span>
+                        {chat.lastMessage
+                      && Chats.shorten(chat.lastMessage.text)}
+                      </span>
+                    </div>
+
                   </div>
-
                 </div>
-              </div>
-            ));
-          }}
-        </Query>
+              ));
+            }}
+          </Query>
+        </div>
+        <div className="openChats">
+          {openChats.map(chatId => (
+            <Query
+              key={`chatWindows${chatId}`}
+              query={GET_CHAT}
+              variables={{ chatId }}
+            >
+              {({ loading, error, data }) => {
+                if (loading) return <p>Loading...</p>;
+                if (error) return error.message;
+
+                const { chat } = data;
+
+                return (
+                  <div className="chatWindow">
+                    <div className="header">
+                      <span>{chat.users[1].username}</span>
+                      <button
+                        type="button"
+                        className="close"
+                      >
+                        X
+                      </button>
+                    </div>
+                    <div className="messages">
+                      {chat.messages.map(message => (
+                        <div
+                          key={`message${message.id}`}
+                          className={`message ${message.user.id > 1
+                            ? 'left'
+                            : 'right'}`}
+                        >
+                          {message.text}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }}
+            </Query>
+          ))}
+        </div>
       </div>
     );
   }
