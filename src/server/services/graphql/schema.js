@@ -25,6 +25,10 @@ type Chat {
   lastMessage: Message
 }
 
+type PostFeed {
+  posts: [Post]
+}
+
 input PostInput {
   text: String!
 }
@@ -52,6 +56,7 @@ type RootQuery {
   posts: [Post]
   chats: [Chat]
   chat(chatId: Int): Chat
+  postsFeed(page: Int, limit: Int): PostFeed
 }
 
 schema {

@@ -61,7 +61,7 @@ export default function resolver() {
             include: [{
               model: User,
               required: true,
-              through: { where: { userId: usersRow.di } },
+              through: { where: { userId: usersRow.id } },
             },
             {
               model: Message,
@@ -69,10 +69,30 @@ export default function resolver() {
           });
         });
       },
+      postsFeed(root, { page, limit }, context) {
+        let skip = 0;
+
+        if (page && limit) {
+          skip = page * limit;
+        }
+
+        const query = {
+          order: [['createdAt', 'DESC']],
+          offset: skip,
+        };
+
+        if (limit) {
+          query.limit = limit;
+        }
+
+        return {
+          posts: Post.findAll(query),
+        };
+      },
     },
     RootMutation: {
       addPost(root, { post }, context) {
-        console.log({
+        logger.log({
           level: 'info',
           message: 'Post was created...',
         });
@@ -88,7 +108,7 @@ export default function resolver() {
         });
       },
       addMessage(root, { message }, context) {
-        console.log({
+        logger.log({
           level: 'info',
           message: 'Message was created...',
         });
