@@ -21,7 +21,7 @@ const GET_CHATS = gql`{
 
 const GET_CHAT = gql`
   query chat($chatId: Int!) {
-    chat(ChatId: $chatId) {
+    chat(chatId: $chatId) {
       id
       users {
         id
