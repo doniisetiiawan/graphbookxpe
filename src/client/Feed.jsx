@@ -6,21 +6,8 @@ import InfiniteScroll from 'react-infinite-scroller';
 import Loading from './components/loading';
 import Error from './components/error';
 import Post from './components/post';
-
-const GET_POSTS = gql`
-  query postsFeed($page: Int, $limit: Int) {
-    postsFeed(page: $page, limit: $limit) {
-      posts {
-        id
-        text
-        user {
-          avatar
-          username
-        }
-      }
-    }
-  }
-`;
+import FeedList from './components/post/feedlist';
+import PostsFeedQuery from './components/queries/postsFeed';
 
 const ADD_POST = gql`
   mutation addPost($post : PostInput!) {
@@ -37,137 +24,73 @@ const ADD_POST = gql`
 export default class Feed extends Component {
   state = {
     postContent: '',
-    hasMore: true,
-    page: 0,
   };
 
   handlePostContentChange = (event) => {
     this.setState({ postContent: event.target.value });
   };
 
-  loadMore = (fetchMore) => {
-    const self = this;
-    const { page } = this.state;
-
-    fetchMore({
-      variables: {
-        page: page + 1,
-      },
-      updateQuery(previousResult, { fetchMoreResult }) {
-        if (!fetchMoreResult.postsFeed.posts.length) {
-          self.setState({ hasMore: false });
-          return previousResult;
-        }
-
-        self.setState({ page: page + 1 });
-
-        return {
-          postsFeed: {
-            __typename: 'PostFeed',
-            posts: [
-              ...previousResult.postsFeed.posts,
-              ...fetchMoreResult.postsFeed.posts,
-            ],
-          },
-        };
-      },
-    });
-  };
-
   render() {
     const self = this;
-    const { postContent, hasMore } = this.state;
+    const { postContent } = this.state;
 
     return (
-      <Query
-        query={GET_POSTS}
-        pollInterval={5000}
-        variables={{ page: 0, limit: 10 }}
-      >
-        {({
-          loading, error, data, fetchMore,
-        }) => {
-          if (loading) return <Loading />;
-          if (error) return <Error><p>{error.message}</p></Error>;
+      <div className="container">
+        <div className="postForm">
 
-          const { postsFeed } = data;
-          const { posts } = postsFeed;
+          <Mutation
+            mutation={ADD_POST}
+            update={(store, { data: { addPost } }) => {
+              const variables = { page: 0, limit: 10 };
+              const data = store.readQuery(
+                { query: GET_POSTS, variables },
+              );
+              data.postsFeed.posts.unshift(addPost);
+              store.writeQuery(
+                { query: GET_POSTS, variables, data },
+              );
+            }}
+            optimisticResponse={{
+              __typename: 'mutation',
+              addPost: {
+                __typename: 'Post',
+                text: postContent,
+                id: -1,
+                user: {
+                  __typename: 'User',
+                  username: 'Loading...',
+                  avatar: '/public/loading.gif',
+                },
+              },
+            }}
+          >
+            {addPost => (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                addPost({
+                  variables: { post: { text: postContent } },
+                }).then(() => {
+                  self.setState(() => ({
+                    postContent: '',
+                  }));
+                });
+              }}
+              >
+                <textarea
+                  value={postContent}
+                  onChange={self.handlePostContentChange}
+                  placeholder="Write your custom post!"
+                />
+                <input type="submit" value="Submit" />
+              </form>
+            )}
+          </Mutation>
 
-          return (
-            <div className="container">
-              <div className="postForm">
-
-                <Mutation
-                  mutation={ADD_POST}
-                  update={(store, { data: { addPost } }) => {
-                    const variables = { page: 0, limit: 10 };
-                    const data = store.readQuery(
-                      { query: GET_POSTS, variables },
-                    );
-                    data.postsFeed.posts.unshift(addPost);
-                    store.writeQuery(
-                      { query: GET_POSTS, variables, data },
-                    );
-                  }}
-                  optimisticResponse={{
-                    __typename: 'mutation',
-                    addPost: {
-                      __typename: 'Post',
-                      text: postContent,
-                      id: -1,
-                      user: {
-                        __typename: 'User',
-                        username: 'Loading...',
-                        avatar: '/public/loading.gif',
-                      },
-                    },
-                  }}
-                >
-                  {addPost => (
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      addPost({
-                        variables: { post: { text: postContent } },
-                      }).then(() => {
-                        self.setState(() => ({
-                          postContent: '',
-                        }));
-                      });
-                    }}
-                    >
-                      <textarea
-                        value={postContent}
-                        onChange={self.handlePostContentChange}
-                        placeholder="Write your custom post!"
-                      />
-                      <input type="submit" value="Submit" />
-                    </form>
-                  )}
-                </Mutation>
-
-              </div>
-              <div className="feed">
-                <InfiniteScroll
-                  loadMore={() => self.loadMore(fetchMore)}
-                  hasMore={hasMore}
-                  loader={(
-                    <div
-                      className="loader"
-                      key="loader"
-                    >
-                      Loading...
-                    </div>
-                  )}
-                >
-                  {posts.map(post => (
-                    <Post key={post.id} post={post} />
-                  ))}
-                </InfiniteScroll>
-              </div>
-            </div>
-          );
-        }}
-      </Query>
+        </div>
+        <PostsFeedQuery>
+          <FeedList />
+        </PostsFeedQuery>
+      </div>
     );
   }
 }
